@@ -1,6 +1,7 @@
-import operator
+import matplotlib.pyplot as plt
 import math
 import random
+import time
 
 import numpy as np
 
@@ -31,39 +32,65 @@ def generate_random_centroids(amount, from_data):
 
     for temp_centroid in range(0, amount):
         random_data_point = random.randint(1, len(test_set))
-        temp_centroids.append([random_data_point, from_data[random_data_point]])
+        temp_centroids.append(from_data[random_data_point])
+
     return temp_centroids
 
 
-def prepare_centroid_list(amount):
+def prepare_cluster_list(amount):
     temp_clusters = []
     for temp_cluster in range(0, amount):
         temp_clusters.append([])
     return temp_clusters
 
+plt.ion()
+plt.show()
 
-test_set = np.genfromtxt('dataset.csv', delimiter=';', usecols=[1,2,3,4,5,6,7], converters={5: lambda s: 0 if s == b"-1" else float(s), 7: lambda s: 0 if s == b"-1" else float(s)})
+test_set = np.genfromtxt('dataset.csv', delimiter=';', usecols=[2,3], converters={5: lambda s: 0 if s == b"-1" else float(s), 7: lambda s: 0 if s == b"-1" else float(s)})
+# test_set = np.genfromtxt('dataset.csv', delimiter=';', usecols=[1,2,3,4,5,6,7], converters={5: lambda s: 0 if s == b"-1" else float(s), 7: lambda s: 0 if s == b"-1" else float(s)})
+
+colors = np.array(10*["r", "g", "c", "b", "k"])
 
 amount_of_centroids = 4  # Amount of random centroids the program will use
-centroids = generate_random_centroids(amount_of_centroids, test_set)  # Generate N random centroids
-clusters = prepare_centroid_list(amount_of_centroids)  # Prepare cluster list with N centroids
+centroids = []
+if (len(centroids) < 1):
+    centroids = generate_random_centroids(amount_of_centroids, test_set)  # Generate N random centroids
+    print("generating starting centroids")
+
+for loop in range(1, 10):
+    plt.clf()
+    print("Loop: #", loop)
+
+    plt.ylabel('Loop #' + str(loop))
+    print("Using centroids: ", centroids)
+    clusters = prepare_cluster_list(amount_of_centroids)  # Prepare cluster list with N centroids
+
+    # Loop each data point
+    for data_point in test_set:
+        distance_to_centroids = []
+
+        for centroid in centroids:
+            distance_to_centroids.append(get_distance(data_point, centroid, len(centroid)))
+            # print("data: " , data_point)
+            # print("centroid: " , centroid)
+            # print("centroidSSS: ", centroids)
+            plt.scatter(centroid[0], centroid[1], c='k', s=10**2, marker='x')  # plot centroids (x)
+
+        clusters[np.argmin(distance_to_centroids)].append(data_point)
+
+    # Calculate the center of a cluster to place our centroids
+    for cluster in clusters:
+        average_point = 0
+
+        for point in cluster:
+            plt.scatter(point[0], point[1], c=colors[clusters.index(cluster)], alpha=0.2)
+            average_point += point
+
+        centroids[clusters.index(cluster)] = (average_point / len(cluster))
+
+    plt.draw()
+    plt.pause(0.001)
+
+time.sleep(100000)
 
 
-# Loop each data point
-for data_point in test_set:
-    distance_to_centroids = []
-
-    for centroid in centroids:
-        distance_to_centroids.append(get_distance(data_point, centroid[1], len(centroid)))
-
-    clusters[np.argmin(distance_to_centroids)].append(data_point)
-
-for cluster in clusters:
-    average_point = 0
-
-    for point in cluster:
-        average_point += point
-
-    centroids[clusters.index(cluster)] = (average_point / len(cluster))
-
-print('New centroids: ', centroids)
