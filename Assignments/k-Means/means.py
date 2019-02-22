@@ -70,9 +70,9 @@ for loop in range(1, 25):
         # print("Cluster: ", cluster)
         # print("Index: ", clusters.index(cluster))
 
-        # if cluster in clusters:
-        #     print("hallo")
 
+        # A bug in Numpy causes this line to give an error randomly.
+        # https://github.com/numpy/numpy/issues/7453
         centroids[clusters.index(cluster)] = (average_point / len(cluster))
         # centroids.append(average_point/len(cluster))
 

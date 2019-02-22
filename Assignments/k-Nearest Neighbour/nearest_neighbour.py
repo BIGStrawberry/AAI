@@ -1,10 +1,14 @@
 import operator
 import math
-
 import numpy as np
 
 
 def get_season(date):
+    """
+    Gets season based on a date (y-m-d)
+    :param date: date to convert to season
+    :return: season (winter, lente, zomer or herfst)
+    """
     date %= 10000
     if date < 301:
         return "winter"
@@ -18,28 +22,33 @@ def get_season(date):
         return "winter"
 
 
-def get_distance(a, b, length):
-    distance = 0
-    for x in range(length):
-        distance += pow(a[x] - b[x], 2)
-    return math.sqrt(distance)
-
-
-def get_neighbors(data, predict, k=1):
-    assert len(data) >= k, "k is set too low"
+def get_neighbors(test_set, point, k=1):
+    """
+    Calculates the euclidean distance between every point in test set and point to determine the neighbours of point
+    :param test_set: data set
+    :param point: data point to get neighbours for
+    :param k: amount of neighbours of point to return
+    :return: k amount of neighbours to point
+    """
+    assert len(test_set) >= k, "k is set too low"
 
     neighbors = []
 
-    for group in range(len(data)):
+    for group in range(len(test_set)):
         neighbors.append([
-            math.sqrt(sum([(a - b) ** 2 for a, b in zip(predict, data[group][1::])])),
-            data[group][0]]
+            math.sqrt(sum([(a - b) ** 2 for a, b in zip(point, test_set[group][1::])])),
+            test_set[group][0]]
         )
     neighbors.sort(key=operator.itemgetter(0))
     return neighbors[:k]
 
 
 def get_most_common_label(neighbors):
+    """
+    Gets the most common label for each neighbour
+    :param neighbors: list of neighbours
+    :return: most common label
+    """
     label_votes = {}
     for x in range(len(neighbors)):
         label = get_season(neighbors[x][1])
@@ -51,92 +60,88 @@ def get_most_common_label(neighbors):
     return sorted_votes[0][0]
 
 
-def knn(data, point, k):
-    return get_most_common_label(get_neighbors(data, point, k))
+def calculate_k(max_k=100):
+    """
+    Calculates the most effective K value to use for the KNN algorithm with the given dataset
+    :param max_k: maximum amount of neighbours the function is allowed to test
+    :return: most effective K value
+    """
+    print("Calculating best K, max K =", max_k)
+    results = []
 
+    for k in range(1, max_k):
+        predicted_seasons = []
+        correct = 0
 
-# Main
-validation = np.genfromtxt('validation.csv', delimiter=';', usecols=[0],
-                           converters={
-    5: lambda x: 0 if x == '-1' else float(x),
-    7: lambda x: 0 if x == '-1' else float(x)
-})
+        for point in training:
+            predicted_seasons.append(get_most_common_label(get_neighbors(test_set, point, k)))
 
-test_set = np.genfromtxt('dataset.csv', delimiter=';',
-                         usecols=[0, 1, 2, 3, 4, 5, 6, 7],
-                         converters={
-                             5: lambda x: 0 if x == '-1' else float(x),
-                             7: lambda x: 0 if x == '-1' else float(x)
-                         })
+        for x in range(len(predicted_seasons)):
+            if predicted_seasons[x] == validation_labels[x]:
+                correct += 1
 
-training = np.genfromtxt('validation.csv', delimiter=';',
-                         usecols=[1, 2, 3, 4, 5, 6, 7],
-                         converters={
-                             5: lambda x: 0 if x == '-1' else float(x),
-                             7: lambda x: 0 if x == '-1' else float(x)
-                         })
+        accuracy = len([x for x in range(len(predicted_seasons)) if predicted_seasons[x] == validation_labels[x]])
+        results.append((accuracy, k))
 
-days = np.genfromtxt('days.csv', delimiter=';',
-                     usecols=[1, 2, 3, 4, 5, 6, 7],
-                     converters={
-                         5: lambda x: 0 if x == '-1' else float(x),
-                         7: lambda x: 0 if x == '-1' else float(x)
-                     })
+    winner = sorted(results, key=lambda tup: tup[0], reverse=True)[0]
 
-validation_labels = []
+    print("Optimal K =", winner[1])
+    return winner[1]
 
-for x in validation:
-    validation_labels.append(get_season(x))
+if __name__ == "__main__":
 
+    # Read all the data from datasets
+    validation = np.genfromtxt('validation.csv', delimiter=';',
+                            usecols=[0],
+                            converters={
+                                5: lambda x: 0 if x == '-1' else float(x),
+                                7: lambda x: 0 if x == '-1' else float(x)
+                            })
 
-# run nearest neighbour 100 times over the training set and compare it to validation
+    test_set = np.genfromtxt('dataset.csv', delimiter=';',
+                             usecols=[0, 1, 2, 3, 4, 5, 6, 7],
+                             converters={
+                                 5: lambda x: 0 if x == '-1' else float(x),
+                                 7: lambda x: 0 if x == '-1' else float(x)
+                             })
 
-results = []
-times = 100
-print('Running kNN %d times' % times)
+    training = np.genfromtxt('validation.csv', delimiter=';',
+                             usecols=[1, 2, 3, 4, 5, 6, 7],
+                             converters={
+                                 5: lambda x: 0 if x == '-1' else float(x),
+                                 7: lambda x: 0 if x == '-1' else float(x)
+                             })
 
-for k in range(1, times):
-    predicted_seasons = []
-    correct = 0
+    days = np.genfromtxt('days.csv', delimiter=';',
+                             usecols=[1, 2, 3, 4, 5, 6, 7],
+                             converters={
+                                 5: lambda x: 0 if x == '-1' else float(x),
+                                 7: lambda x: 0 if x == '-1' else float(x)
+                             })
 
-    for point in training:
-        predicted_seasons.append(knn(test_set, point, k))
+    validation_labels = []
 
-    for x in range(len(predicted_seasons)):
-        if predicted_seasons[x] == validation_labels[x]:
-            correct += 1
+    for x in validation:
+        validation_labels.append(get_season(x))
 
-        # if (predicted_seasons[x] == validation_labels[x]):
-        #     print('k = ', k, ' -- ', predicted_seasons[x], ' == ', validation_labels[x])
-        # else:
-        #     print('k = ', k, ' -- ', predicted_seasons[x], ' != ', validation_labels[x])
+    # Unlabeled weather data
+    unlabeled_data = [
+            (40, 52, 2, 102, 103, 0, 0),
+            (25, 48, -18, 105, 72, 6, 1),
+            (23, 121, 56, 150, 25, 18, 18),
+            (27, 229, 146, 308, 130, 0, 0),
+            (41, 65, 27, 123, 95, 0, 0),
+            (46, 162, 100, 225, 127, 0, 0),
+            (23, -27, -41, -16, 0, 0, -1),
+            (28, -78, -106, -39, 67, 0, 0),
+            (38, 166, 131, 219, 58, 16, 41),
+            (50, 66, 111, 119, 85, 26, 51)
+        ]
 
-    accuracy = len([x for x in range(len(predicted_seasons)) if predicted_seasons[x] == validation_labels[x]])
+    # Calculate optimal K to use
+    optimal_k = calculate_k()
 
-    results.append((accuracy, k))
-
-winner = sorted(results, key=lambda tup: tup[0], reverse=True)[0]
-
-print('Best k = ', winner[1], 'with ', winner[0], '% accuracy')
-
-for result in results:
-    print('%d%% for k = %d' % (result[0], result[1]))
-
-print('Ran %d times' % times)
-
-unlabeled = [
-        (40, 52, 2, 102, 103, 0, 0),
-        (25, 48, -18, 105, 72, 6, 1),
-        (23, 121, 56, 150, 25, 18, 18),
-        (27, 229, 146, 308, 130, 0, 0),
-        (41, 65, 27, 123, 95, 0, 0),
-        (46, 162, 100, 225, 127, 0, 0),
-        (23, -27, -41, -16, 0, 0, -1),
-        (28, -78, -106, -39, 67, 0, 0),
-        (38, 166, 131, 219, 58, 16, 41),
-        (50, 66, 111, 119, 85, 26, 51)
-    ]
-
-for x in unlabeled:
-    print(knn(test_set, x, 58))
+    # Classify unlabeled data
+    for unlabeled_point in unlabeled_data:
+        print(unlabeled_point, "is from season", get_most_common_label(get_neighbors(test_set, unlabeled_point, optimal_k)))
 
