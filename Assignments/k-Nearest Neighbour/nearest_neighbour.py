@@ -88,6 +88,7 @@ def calculate_k(max_k=100):
     print("Optimal K =", winner[1])
     return winner[1]
 
+
 if __name__ == "__main__":
 
     # Read all the data from datasets

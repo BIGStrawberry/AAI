@@ -1,11 +1,18 @@
 import math
 import random
 import numpy as np
+import matplotlib.pyplot as plt
 
 
-def get_distance(a, b, length):
+def get_distance(a, b):
+    """
+    Calculates the Euclidean distance between point A and point B
+    :param a: point A
+    :param b: point B
+    :return:
+    """
     distance = 0
-    for x in range(length):
+    for x in range(len(b)):
         distance += pow(a[x] - b[x], 2)
     return math.sqrt(distance)
 
@@ -33,52 +40,47 @@ def prepare_cluster_list(amount):
 test_set = np.genfromtxt('dataset.csv', delimiter=';', usecols=[1,2,3,4,5,6,7], converters={5: lambda s: 0 if s == b"-1" else float(s), 7: lambda s: 0 if s == b"-1" else float(s)})
 
 amount_of_centroids = 4  # Amount of random centroids the program will use
-centroids = []
+centroids = generate_random_centroids(amount_of_centroids, test_set)
 
 if len(centroids) < 1:
     centroids = generate_random_centroids(amount_of_centroids, test_set)  # Generate N random centroids
     print("generating starting centroids")
 
-for loop in range(1, 25):
-    print("Loop: #", loop)
+for x in range(1, 10):
+    for loop in range(1, 25):
+        print("Loop: #", loop)
 
-    print("Using centroids: ", centroids)
-    clusters = prepare_cluster_list(amount_of_centroids)  # Prepare cluster list with N centroids
+        print("Using centroids: ", centroids)
+        clusters = prepare_cluster_list(amount_of_centroids)  # Prepare cluster list with N centroids
 
-    # Loop each data point
-    for data_point in test_set:
-        distance_to_centroids = []
+        # Loop each data point
+        for data_point in test_set:
+            distance_to_centroids = []
 
-        for centroid in centroids:
-            distance_to_centroids.append(get_distance(data_point, centroid, len(centroid)))
+            for centroid in centroids:
+                distance_to_centroids.append(get_distance(data_point, centroid))
 
-        clusters[np.argmin(distance_to_centroids)].append(data_point)
+            clusters[np.argmin(distance_to_centroids)].append(data_point)
 
-    # Calculate the center of a cluster to place our centroids
+        # Calculate the center of a cluster to place our centroids
 
-    # centroids = []
-    for cluster in clusters:
-        # centroids.append(np.mean(cluster))
-        average_point = 0
+        # centroids = []
+        for cluster in clusters:
+            average_point = 0
 
-        for point in cluster:
-            average_point += point
+            for point in cluster:
+                average_point += point
 
-        print("Avg point: ", average_point/len(cluster))
-
-        # print("Clusters: ", clusters)
-        # print("Cluster: ", cluster)
-        # print("Index: ", clusters.index(cluster))
+            # A bug in Numpy causes this line to give an error randomly.
+            # https://github.com/numpy/numpy/issues/7453
+            centroids[clusters.index(cluster)] = (average_point / len(cluster))
+            # centroids.append(average_point/len(cluster))
 
 
-        # A bug in Numpy causes this line to give an error randomly.
-        # https://github.com/numpy/numpy/issues/7453
-        centroids[clusters.index(cluster)] = (average_point / len(cluster))
-        # centroids.append(average_point/len(cluster))
 
-print("Finished.")
-print("Centroids Used: ")
-print(centroids)
-print("Clusters Found: ")
-print(clusters)
+    print("Finished.")
+    print("Centroids Used: ")
+    print(centroids)
+    print("Clusters Found: ")
+    print(clusters)
 
